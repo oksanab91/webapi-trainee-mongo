@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using TraineesApi.Models;
 using TraineesApi.Services;
+using System.Linq;
+using MongoDB.Driver;
 
 namespace TraineesApi.Controllers
 {
@@ -22,6 +24,24 @@ namespace TraineesApi.Controllers
         [HttpGet]
         public ActionResult<List<Trainee>> Get() =>
             _traineeService.Get();
+
+        // GET: api/Trainees/All
+        [HttpGet("All", Name = "GetAll")]        
+        public async Task<ActionResult<List<Trainee>>> GetAll()
+        {
+            var all = await _traineeService.GetAsync();            
+
+            return Ok(all);
+        }      
+
+        // GET: api/Trainees/Olivia Pratt
+        [HttpGet("{name}", Name = "GetByName")]
+        public async Task<ActionResult<List<Trainee>>> GetByName(string name)
+        {
+            var trainees = await _traineeService.GetByName(name);
+
+            return Ok(trainees);
+        }
 
         // GET: api/Trainees/5
         [HttpGet("{id:length(24)}", Name = "GetTrainee")]
@@ -46,6 +66,34 @@ namespace TraineesApi.Controllers
             return CreatedAtRoute("GetTrainee", new { id = trainee.Id.ToString() }, trainee);
         }
 
+        // PUT: api/Trainees/transact/5        
+        [HttpPut("{transact}/{id:length(24)}", Name = "UpdateInTransaction")]       
+        public async Task<IActionResult> UpdateInTransaction(string id, Trainee traineeUpdate)
+        {
+            if (id != traineeUpdate.Id)
+            {
+                return BadRequest();
+            }
+
+            var trainee = _traineeService.Get(id);
+
+            if (trainee == null)
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                await _traineeService.UpdateInTransaction(id, traineeUpdate);
+
+                return NoContent();
+            }
+            catch(Exception)
+            {
+                throw;
+            }            
+        }
+
         // PUT: api/Trainees/5
         [HttpPut("{id:length(24)}")]
         public IActionResult Update(string id, Trainee traineeUpdate)
@@ -62,7 +110,7 @@ namespace TraineesApi.Controllers
             return NoContent();
         }
 
-        // DELETE: api/ApiWithActions/5
+        // DELETE: api/Trainees/5
         [HttpDelete("{id:length(24)}")]
         public IActionResult Delete(string id)
         {
@@ -78,44 +126,5 @@ namespace TraineesApi.Controllers
             return NoContent();
         }
 
-        //The function takes as input a binary string and outputs whether it’s a a good binary string.
-        //A non-empty binary string is to be good if the following two conditions are true:
-        //1. The number of 0's is equal to the number of 1's.
-        //2. For every prefix of the binary string, the number of 1's should not be less than the number of 0's.
-        private bool IsBinaryStringGood(string binaryStr)
-        {
-            try
-            {
-                bool isGood = true;
-
-                //non-empty binary string
-                if (binaryStr == null || binaryStr.Length == 0) return false;
-
-                //The number of 0's is equal to the number of 1's
-                if (binaryStr.Length % 2 > 0) return false;
-                int count = binaryStr.Count(chr => chr == '0');
-                if (count != binaryStr.Length / 2) return false;
-
-                //For every prefix of the binary string, the number of 1's should not be less than the number of 0's
-                if (binaryStr.Substring(0, 1) != "1") return false;
-                
-                var innerList = new List<int>();
-                int length = binaryStr.Length;
-                int i = 0;
-
-                while (isGood && i < length)
-                {
-                    innerList.Add(int.Parse(binaryStr[i].ToString()));
-                    isGood = innerList.Sum() >= Math.Ceiling((double)innerList.Count / 2);
-                    i++;
-                }
-
-                return isGood;
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
-        }
     }
 }
